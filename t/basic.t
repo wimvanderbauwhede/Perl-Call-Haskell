@@ -1,8 +1,13 @@
 use strict;
-use Test::More tests => 0;
-use Call::Haskell import => 'ProcessStr( f1, f2, f3, f4 )', path => '.';
+use Test::More;
 
-#system('rm -Rf _Call_Haskell/ _Inline/');
+system('rm -f *.o *.hi');
+system('rm -Rf _Call_Haskell/ _Inline/');
+
+plan skip_all => "Skipping all test, please uncomment the 'use Call:Haskell' and the test plan and run manually";
+#plan tests => 4;
+#use Call::Haskell import => 'ProcessStr( f1, f2, f3, f4 )', path => '.';
+
 my $str= "Test string with newlines\nTest string with newlines\n";
 my $res2='From Haskell: <Test string with newlines
 Test string with newlines
