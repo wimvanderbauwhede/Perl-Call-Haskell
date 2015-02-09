@@ -1,29 +1,17 @@
-package Call::Haskell
-  ; # to be renamed Call::Haskell; also use a custom sub import, that's the whole point.
+package Call::Haskell;
 use warnings;
 use strict;
 use v5.16;
 
-#use Data::Dumper;
 use Call::Haskell::FFIGenerator qw( create_hs_ffi_generator );
 use Cwd;
 use Config;
 require Inline;
 
-our $VERSION = '0.01';
+use version; our $VERSION = version->declare('v0.0.1');
 @Call::Haskell::ISA = qw(Exporter);
 my $VV = 0;
 
-=info
-I propose an interface as follows:
-
-  use Haskell q[ ModuleName1( f1, f2, ...) ];
-
-And then you simply use
-
- f1(...); 
-
-=cut
 
 sub import {
  my ( $hs, @import_list ) = @_;
@@ -235,3 +223,80 @@ END {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Call::Haskell - Call Haskell functions from Perl
+
+
+=head1 SYNOPSIS
+
+    use Call::Haskell 'My::Haskell::Module( f1, f2, f3, f4 )'
+
+or more explicitly:
+
+    use Call::Haskell functions => 'My::Haskell::Module( f1, f2, f3, f4 )' , path => '..', clean => 0, verbose => 0 ;
+    
+    my $res = f1(@args);
+
+Note that the path to C<Call/Haskell.pm> must be I<absolute> in C<@INC>. The easiest way is to add the absolute path to the C<PERL5LIB> environment variable.  
+
+
+
+=head1 DESCRIPTION
+
+Call::Haskell provides a simple mechanism to call Haskell functions from Perl. The syntax for the import statement is similar to what you would write in Haskell. If the path is not specified, the local directory is assumed.
+
+To use this module you need
+
+    - perl 5.16 or later,
+    - ghc 7.8 or more recent,
+    - gcc 4.8 or more recent
+
+You also need recent versions of
+
+    - the Inline, Inline::C and Digest::MD5 Perl packages
+    - the Parsec Haskell package
+
+Currently the Haskell function arguments and return values must have types that are lists, tuples or maps of primitive types (Int, Bool, String). Haskell's Data.Map becomes a Perl hash and vice versa. Maybe is also supported, Nothing is mapped to undef and vice versa.
+
+The module packs the arguments into a string and unpacks the return value from a string. This will be very slow for large data structures.
+
+Currently, you can only use functions from a single Haskell module.
+
+The module creates two subdirectories in your working directory: C<_Call_Haskell> and C<_Inline>. You can find all generated code in there. 
+
+
+=head1 AUTHOR
+
+Wim Vanderbauwhede  <Wim.Vanderbauwhede@mail.be>
+
+
+=head1 COPYRIGHT
+
+Copyright 2015- Wim Vanderbauwhede
+
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+
+=head1 SEE ALSO
+
+=over
+
+=item -
+
+Inline, Inline::C and Digest::MD5 Perl packages
+
+
+=item -
+
+The Parsec Haskell package L<http://hackage.haskell.org/package/parsec>
+
+
+=back
+

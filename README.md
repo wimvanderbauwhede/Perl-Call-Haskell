@@ -12,7 +12,7 @@ or more explicitly:
 
     my $res = f1(@args);
 
-Note that currently, the path to `Call/Haskell.pm` must be absolute in `@INC`, the easiest way is to add it to the `PERL5LIB` environment variable.
+Note that the path to `Call/Haskell.pm` must be *absolute* in `@INC`. The easiest way is to add the absolute path to the `PERL5LIB` environment variable.    
 
 # DESCRIPTION
 
@@ -35,7 +35,7 @@ The module packs the arguments into a string and unpacks the return value from a
 
 Currently, you can only use functions from a single Haskell module.
 
-The module creates two subdirectories in your working directory: `_Call_Haskell` and `_Inline`. You can find all generated code in there.
+The module creates two subdirectories in your working directory: `_Call_Haskell` and `_Inline`. You can find all generated code in there. 
 
 # AUTHOR
 
@@ -51,3 +51,7 @@ This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 # SEE ALSO
+
+- Inline, Inline::C and Digest::MD5 Perl packages
+- The Parsec Haskell package <http://hackage.haskell.org/package/parsec>
+

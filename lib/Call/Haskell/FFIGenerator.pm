@@ -5,9 +5,8 @@ use v5.16;
 
 use Cwd;
 use Digest::MD5;
-#use Data::Dumper;
 
-our $VERSION = '0.01';
+use version; our $VERSION = version->declare('v0.0.1');
 
 use Exporter 'import';
 

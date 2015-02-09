@@ -1,7 +1,7 @@
 {
-   "abstract" : "Blah blah blah",
+   "abstract" : "Call Haskell functions from Perl",
    "author" : [
-      "Wim Vanderbauwhede <Wim.Vanderbauwhede@mail.be>"
+      "Wim Vanderbauwhede  <Wim.Vanderbauwhede@mail.be>"
    ],
    "dynamic_config" : 0,
    "generated_by" : "Dist::Zilla version 5.031, Dist::Milla version v1.0.9, CPAN::Meta::Converter version 2.143240",
@@ -31,13 +31,15 @@
       },
       "develop" : {
          "requires" : {
-            "Dist::Milla" : "v1.0.9",
-            "Test::Pod" : "1.41"
+            "Dist::Milla" : "v1.0.9"
          }
       },
       "runtime" : {
          "requires" : {
-            "perl" : "5.008005"
+            "Digest::MD5" : "2.54",
+            "Inline" : "0.78",
+            "Inline::C" : "0.73",
+            "perl" : "5.016"
          }
       },
       "test" : {
@@ -47,6 +49,17 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.01"
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/wimvanderbauwhede/Perl-Call-Haskell/issues"
+      },
+      "homepage" : "https://github.com/wimvanderbauwhede/Perl-Call-Haskell",
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/wimvanderbauwhede/Perl-Call-Haskell.git",
+         "web" : "https://github.com/wimvanderbauwhede/Perl-Call-Haskell"
+      }
+   },
+   "version" : "v0.0.1"
 }
 
