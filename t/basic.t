@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 0;
 use Call::Haskell import => 'ProcessStr( f1, f2, f3, f4 )', path => '.';
 
 #system('rm -Rf _Call_Haskell/ _Inline/');
