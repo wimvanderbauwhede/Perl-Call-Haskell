@@ -2,5 +2,8 @@ Revision history for Call-Haskell
 
 {{$NEXT}}
 
+v0.1.0  2015-02-18 09:17:57 GMT
+        - This release works for most untyped cases as well as with the type system.
+
 v0.0.1  2015-02-09 14:34:36 GMT
         - Initial release
