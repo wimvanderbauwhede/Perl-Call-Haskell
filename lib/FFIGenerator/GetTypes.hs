@@ -4,9 +4,10 @@ import Data.Typeable
 
 getTypes f = 
  let
-    typestr = show $ typeOf f
+    tf = typeOf f
+    typestr = show tf
  in    
-    filter (/= "->") (words typestr)
+    (filter (/= "->") (words typestr), typeRepSplit tf [])
 
 convertToCType t 
     | t == "Int" = "CLong"
@@ -17,16 +18,25 @@ convertToCType t
 
 hasSimpleSig f = 
     let
-        tts =map convertToCType (getTypes f)
+        tts =map convertToCType (fst (getTypes f))
     in
         foldl (&&) True (map (/= "serialise") tts)
              
 getFFITypes f 
   | hasSimpleSig f = 
     let
-        tts =map convertToCType (getTypes f)
+        tts =map convertToCType (fst (getTypes f))
         res = last tts
     in
         (init tts)++["IO "++res]
   | otherwise = ["CString","IO CString"]
 
+typeRepSplit :: TypeRep -> [TypeRep] -> [TypeRep]
+typeRepSplit tr trls =
+    let
+        trtc = typeRepTyCon tr
+        tra = typeRepArgs tr
+    in    
+       if (show trtc) == "(->)" 
+         then typeRepSplit (last tra) (trls++(init tra)) 
+         else trls++[tr]

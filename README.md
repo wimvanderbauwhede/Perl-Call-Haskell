@@ -12,8 +12,6 @@ or more explicitly:
 
     my $res = f1(@args);
 
-Note that the path to `Call/Haskell.pm` must be *absolute* in `@INC`. The easiest way is to add the absolute path to the `PERL5LIB` environment variable.    
-
 # DESCRIPTION
 
 Call::Haskell provides a simple mechanism to call Haskell functions from Perl. The syntax for the import statement is similar to what you would write in Haskell. If the path is not specified, the local directory is assumed.

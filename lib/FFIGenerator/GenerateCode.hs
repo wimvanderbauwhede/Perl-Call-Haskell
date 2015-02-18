@@ -16,7 +16,8 @@ createHaskellWrapper module_name func_list =
       ,"import Foreign.C.Types"
       ,"import Foreign.C.String"
       , maybe_serialise func_list
-      ,"import "++module_name++" ( "++func_list_str++" )"
+      ,"import Data.Map"
+      ,"import "++module_name -- ++" ( "++func_list_str++" )"
       ,""
       ]
     ffi_export_lines = unlines $ map gen_ffi_export func_list
@@ -113,7 +114,7 @@ gen_ffi_wrapper (f,ft,fs,fht)
       fcall_line = "    let res = "++f ++" "++(unwords args')
       res_conversion_line = (ffi_res_conversion ("res",ffi_res_type))
       ret_line = "    return res'"
-      debug_line = "" -- "    putStrLn \"HERE\" "
+      debug_line = "" -- "    putStrLn str "
     in    
       unlines $ [ffi_sig_line, ffi_fst_line]++ arg_conversion_lines ++[debug_line,fcall_line,debug_line,res_conversion_line,debug_line,ret_line]
   | otherwise = gen_readshow_wrapper f fht 
@@ -126,18 +127,19 @@ gen_ffi_wrapper (f,ft,fs,fht)
 --  So, if the type is not "simple", the FFI type becomes CString -> IO CString and the function becomes:
 gen_readshow_wrapper f ft = 
   let
-      ffi_types = ft 
+      ffi_types = snd ft 
       ffi_arg_types = init ffi_types
       ffi_res_type = last ffi_types
       args = map (\i -> "x"++(show i)) [1 .. length ffi_arg_types]  
       ftype_tup 
-        | length ffi_arg_types > 1 = "("++(joinWith ffi_arg_types ",")++")"
-        | otherwise = head ffi_arg_types
+        | length ffi_arg_types > 1 = "("++(joinWith (map show ffi_arg_types) ",")++")"
+        | otherwise = show $ head ffi_arg_types
   in         
      unlines [
          f++"_ffi :: CString -> IO CString",
          f++"_ffi cstr = do",
         "        str <- peekCString cstr",
+--        "        putStrLn str",
         "        let",
         "            argtup :: "++ftype_tup,
         "            argtup = read str",

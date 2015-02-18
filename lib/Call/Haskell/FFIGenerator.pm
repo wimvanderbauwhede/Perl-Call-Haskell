@@ -2,11 +2,11 @@ package Call::Haskell::FFIGenerator;
 use warnings;
 use strict;
 use v5.16;
-
+use Data::Dumper;
 use Cwd;
 use Digest::MD5;
 
-use version; our $VERSION = version->declare('v0.0.1');
+use version; our $VERSION = version->declare('v0.1.0');
 
 use Exporter 'import';
 
@@ -20,22 +20,31 @@ our $VV=0;
 sub create_hs_ffi_generator {
  ( my $module_name, my $function_names, my $inc, my $CLEAN, my $VV, my $perl_types ) = @_;
  $Call::Haskell::FFIGenerator::VV=$VV;
+ 
  my $wd = cwd();
+ my $Call_Haskell_path=$INC{"Call/Haskell/FFIGenerator.pm"};
+ my $hs_FFIGenerator_dir=$Call_Haskell_path;
+
+ $hs_FFIGenerator_dir=~s/Call.Haskell.FFIGenerator.pm$//;
+ if ($hs_FFIGenerator_dir=~/^\.\./) {
+     $hs_FFIGenerator_dir='../'.$hs_FFIGenerator_dir;
+ }
  if ( not -e '_Call_Haskell' ) {
   mkdir '_Call_Haskell';
  }
  chdir '_Call_Haskell';
+ mkdir 'FFIGenerator';
+ system("cp $hs_FFIGenerator_dir/FFIGenerator/*.hs FFIGenerator");
  my $generate = 0;
  if ( $CLEAN == 1 ) {
-  say "CLEANING generated sources" if $VV;
-  unlink $module_name . '_ffi_wrapper_gen.hs';
-  unlink $module_name . "FFIWrapper.hs";
-  unlink $module_name . "CWrapper.c";
-  unlink $module_name . "CWrapper.h";    
+#  say "CLEANING generated sources" if $VV;
+#  unlink $module_name . '_ffi_wrapper_gen.hs';
+#  unlink $module_name . "FFIWrapper.hs";
+#  unlink $module_name . "CWrapper.c";
+#  unlink $module_name . "CWrapper.h";    
   $generate = 1;
- }
- else {
-  #  say "Computing MD5";
+ } else {
+#  say "Computing MD5 for $wd/$inc/$module_name.hs";
   my $filename = "$wd/$inc/$module_name.hs";
   open( my $fh, '<', $filename ) or die "Can't open '$filename': $!";
   binmode($fh);
@@ -48,21 +57,22 @@ sub create_hs_ffi_generator {
   if ( -e "$module_name.md5" ) {
    open( my $md5fh, '<', "$module_name.md5" );
    my $ref_checksum = <$md5fh>;
-   close $md5fh;
+   close $md5fh;   
    say "MD5:", $checksum eq $ref_checksum if $VV;
    if ( $checksum ne $ref_checksum ) {
-    unlink "$module_name.md5";
+    unlink "$module_name.md5";    
     $generate = 1;
-   }
-   else {
+   } else {       
     $generate = 0;
    }
-  }
-  else {
+  } else {
+      say "no MD5 checksum for $module_name.md5" if $VV;
+      
    $generate = 1;
   }
   if ( not -e "$module_name.md5" ) {
    $generate = 1;
+   
    open( my $md5fh, '>', "$module_name.md5" );
    print $md5fh $checksum;
    close $md5fh;
@@ -76,6 +86,7 @@ sub create_hs_ffi_generator {
    and -e $module_name . "_Inline_C.c" )
    )
  {
+
   $generate = 1;
  }
 my $c_code='';
@@ -105,10 +116,13 @@ my $c_code='';
   close $GEN;
  my $Call_Haskell_path=$INC{"Call/Haskell/FFIGenerator.pm"};
  my $hs_FFIGenerator_dir=$Call_Haskell_path;
+
  $hs_FFIGenerator_dir=~s/Call.Haskell.FFIGenerator.pm$//;
- if ($hs_FFIGenerator_dir=~/^\./) {die "\nThe path to the Call::Haskell module _must_ be absolute, please redefine your PERL5LIB\n\n"; } 
+
+ #if ($hs_FFIGenerator_dir=~/^\./) {die "\nThe path to the Call::Haskell module _must_ be absolute, please redefine your PERL5LIB\n\n"; }
+ $hs_FFIGenerator_dir='.'; 
  say  "FFIGenerator path:",$hs_FFIGenerator_dir if $VV;   
-   my @hs_f_types =
+   my @hs_f_types = 
     `runhaskell -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir ${module_name}_ffi_wrapper_gen.hs`;
    $c_code = create_C_wrapper( \@hs_f_types, $module_name );
  
@@ -130,15 +144,18 @@ use Exporter qw( import );
 \@CallHaskellWrappers::${fn}::EXPORT = qw( $fn );
 
 ENDWC
-       
-       if ($perl_types eq '') {
        my $hs_argtup_type = (scalar @{$arg_types} > 1) ?  '('.join(',',@{$arg_types}).')' : $arg_types->[0];
+       
+            $Data::Dumper::Indent=0;  
+           $Data::Dumper::Terse=1;
         
+        my $hs_type_str=Dumper($hs_argtup_type);
+    if ($perl_types eq '') {             
         $code .= <<"ENDWH";
 use Call::Haskell::ReadShow qw( showH readH );
 require Call::Haskell; 
 sub $fn {
-    my \$hs_type='$hs_argtup_type';
+    my \$hs_type=$hs_type_str;
     my \$in_str = Call::Haskell::ReadShow::showH(\@_,\$hs_type);
     my \$out_str=Call::Haskell::${fn}_ser(\$in_str);
     my \$res = Call::Haskell::ReadShow::readH(\$out_str);
@@ -148,15 +165,27 @@ sub $fn {
 ENDWH
         
        } else {
-
+my $use_perl_types = $perl_types == 1 ? '' : "use $perl_types;";
+    
        $code .= <<"ENDWTP";
+use Call::Haskell::ReadShow qw( showH readH );       
 use Types;
-use $perl_types;
+$use_perl_types
 require Call::Haskell; 
 sub $fn {
-    my \$in_str = Types::show(\@_);
-    my \$out_str=Call::Haskell::${fn}_ser(\$in_str);
-    my \$res = Types::read(\$out_str);
+    my \$hs_type=$hs_type_str;
+    my \$in_str = '';
+    my \@in_arg_strs=();
+    for my \$arg (\@_) {
+        if (ref(\$arg) eq 'Types') {    
+            push \@in_arg_strs, Types::show(\$arg);
+        } else {
+           push \@in_arg_strs,  Call::Haskell::ReadShow::showH(\$arg,\$hs_type);
+        }
+    }
+    my \$in_str = (\@_>1) ? '('.join(', ',\@in_arg_strs).')' : \$in_arg_strs[0];     
+    my \$out_str=Call::Haskell::${fn}_ser(\$in_str);    
+    my \$res = eval(\$out_str);
     return \$res;
 }
 
@@ -220,7 +249,8 @@ sub HstoP_types {
  }
  return $p_t;
 }
-
+# So with the new type datastructure this will work if the type is a string and it exists. 
+# So that's fine in a very Perl-ish way 
 sub isSimpleSig {
  ( my @hs_f_types ) = @_;
  my $test = 1;
@@ -230,7 +260,7 @@ sub isSimpleSig {
  return $test;
 }
 
-sub decomposeHSType {
+sub decomposeHSTypeOLD {
  ( my $hs_f_type ) = @_;
 # say "decomposeHSType:",$hs_f_type;
  chomp $hs_f_type;
@@ -239,6 +269,19 @@ sub decomposeHSType {
  my $ret_type = pop @argtypes;
  my $res= [ $f, \@argtypes, $ret_type ];
 # say Dumper($res);
+ return $res;
+}
+
+sub decomposeHSType {
+ ( my $hs_f_type ) = @_;
+# say "decomposeHSType:",Dumper($hs_f_type);
+ chomp $hs_f_type;
+ ( my $f, my $args ) = split( /\s+::\s+/, $hs_f_type );
+# say "decomposeHSType:",$args;
+ my $argtypes = eval($args);
+ my $ret_type = pop @{$argtypes};
+ my $res= [ $f, $argtypes, $ret_type ];
+# say Dumper($res);die;
  return $res;
 }
 
@@ -316,6 +359,20 @@ int hs_end(int n) {
  return $c_code;
 } # END of create_C_wrapper()
 
+sub AUTOLOAD {
+    our $AUTOLOAD;
+        my $t=$AUTOLOAD;
+        $t=~s/^.+:://;
+        $t eq 'True' && do{$t=1};
+        $t eq 'False' && do{$t=1};
+        $t eq 'Nothing' && do{$t=undef};
+    if (not @_) {
+        return $t;
+    } else {
+            return {TypeName=>$t,TypeArgs=>[@_] };
+    }
+}
+
 1;
 
 # _FUNC_ gets populated for every function with magic commas
@@ -324,12 +381,14 @@ __DATA__
 module Main where
 import Data.Typeable ( typeOf )
 -- import Data.List ( intercalate )
+import FFIGenerator.TypeToPerl (  typeToPerl ) 
 import FFIGenerator.GetTypes ( getFFITypes, hasSimpleSig, getTypes )
 import FFIGenerator.GenerateCode ( createHaskellWrapper, createCWrapper, createCWrapperHeader )
 
-import _MODULE_NAME_ ( 
-        _FUNC_,
-        )
+import _MODULE_NAME_ 
+-- ( 
+--         _FUNC_,
+--         )
 
 module_name = "_MODULE_NAME_"
 func_list =[
@@ -344,6 +403,5 @@ main = do
     createHaskellWrapper module_name func_list
     createCWrapper module_name func_list
     createCWrapperHeader module_name func_list
-    putStrLn $ "_FUNC_ :: "++(show(typeOf _FUNC_))
+    putStrLn $ "_FUNC_ :: "++(typeToPerl (show(typeOf _FUNC_)))
 --    mapM (\(f,ffit,fs,ft) -> putStrLn (f++" :: "++ (intercalate " -> " ft))) func_list
-

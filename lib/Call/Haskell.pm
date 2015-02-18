@@ -8,7 +8,7 @@ use Cwd;
 use Config;
 require Inline;
 
-use version; our $VERSION = version->declare('v0.0.1');
+use version; our $VERSION = version->declare('v0.1.0');
 @Call::Haskell::ISA = qw(Exporter);
 my $VV = 0;
 
@@ -22,6 +22,7 @@ sub import {
   'clean'     => 0,
   'verbose'   => 0,
   'perl_types' => '', 
+  'packages' => [], 
  );
  if ( scalar @import_list == 1 ) {
   $config{'functions'} = $import_list[0];
@@ -78,7 +79,7 @@ sub build {
    @_;                     #'ProcessString';
  my $wd = cwd();
  if ($CLEAN) {
-  system('rm -Rf _Inline');
+    system('rm -Rf _Call_Haskell _Inline');
  }
  ( my $inline_c_code, my $generated ) =
    create_hs_ffi_generator( $hs_module, $function_names, $hs_module_dir, $CLEAN,
@@ -102,9 +103,12 @@ sub build {
  # The code below could go into a module
  #say join(':',@INC),';',"\n",Dumper(%INC);#,';',
  my $Call_Haskell_path=$INC{"Call/Haskell.pm"};
+
  my $hs_FFIGenerator_dir=$Call_Haskell_path;
  $hs_FFIGenerator_dir=~s/Call.Haskell.pm$//;
- if ($hs_FFIGenerator_dir=~/^\./) {die "\nThe path to the Call::Haskell module _must_ be absolute, please redefine your PERL5LIB\n\n"; }
+
+ #if ($hs_FFIGenerator_dir=~/^\./) {die "\nThe path to the Call::Haskell module _must_ be absolute, please redefine your PERL5LIB\n\n"; }
+ $hs_FFIGenerator_dir='.';
  say  "FFIGenerator path:",$hs_FFIGenerator_dir if $VV;
  my $hs_ffi_module = $hs_module . 'FFIWrapper';
 
@@ -115,7 +119,7 @@ sub build {
  my $hs_lib             = $hs_module . 'HsC';
  my $link_options_cache = '.lddlflags.cache';
 
- # Clean up
+# # Clean up
  if ($CLEAN) {
   system("rm *.o *.hi lib$hs_lib.a $test_src.c $test_out $link_options_cache");
   system("rm -Rf ./tmp/*");
@@ -126,7 +130,7 @@ sub build {
   say "ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module";
   system("ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module");
  }
- if ( not -e "ProcessStrCWrapper.o" ) {
+ if ( not -e "$c_wrapper.o" ) {
   say "ghc --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir -optc-O -no-hs-main -c $c_wrapper.c $hs_ffi_module $hs_module FFIGenerator.ShowToPerl";
   system(
 "ghc --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir -optc-O -no-hs-main -c $c_wrapper.c $hs_ffi_module $hs_module FFIGenerator.ShowToPerl"
@@ -158,14 +162,14 @@ sub build {
  # if there is no cached link options file
  if ( not -e $link_options_cache ) {
   print
-"ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -o $test_out 2>&1\n"
+"ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers -o $test_out 2>&1\n"
     if $VV;
   my @ghc_link_output =
-`ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -o $test_out 2>&1`;
+`ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers -o $test_out 2>&1`;
   my $ghc_link_options_str = $ghc_link_output[-1];
   $ghc_link_options_str =~ s/^\s*\'//;
   $ghc_link_options_str =~ s/\'\s*$//;
-  print "HASKELL LD CMD: $ghc_link_options_str\n" if $VV;
+#  print "HASKELL LD CMD: $ghc_link_options_str\n" if $VV;
   my @ghc_link_options = ();
   if ( $ghc_link_options_str =~ /\'\s+\'/ ) {
 
@@ -239,8 +243,6 @@ or more explicitly:
     use Call::Haskell functions => 'My::Haskell::Module( f1, f2, f3, f4 )' , path => '..', clean => 0, verbose => 0 ;
     
     my $res = f1(@args);
-
-Note that the path to C<Call/Haskell.pm> must be I<absolute> in C<@INC>. The easiest way is to add the absolute path to the C<PERL5LIB> environment variable.  
 
 
 
