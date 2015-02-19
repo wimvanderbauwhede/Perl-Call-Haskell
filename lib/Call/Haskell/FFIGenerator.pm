@@ -169,7 +169,7 @@ my $use_perl_types = $perl_types == 1 ? '' : "use $perl_types;";
     
        $code .= <<"ENDWTP";
 use Call::Haskell::ReadShow qw( showH readH );       
-use Types;
+use Functional::Types;
 $use_perl_types
 require Call::Haskell; 
 sub $fn {
@@ -177,8 +177,8 @@ sub $fn {
     my \$in_str = '';
     my \@in_arg_strs=();
     for my \$arg (\@_) {
-        if (ref(\$arg) eq 'Types') {    
-            push \@in_arg_strs, Types::show(\$arg);
+        if (ref(\$arg) eq 'Functional::Types') {    
+            push \@in_arg_strs, Functional::Types::show(\$arg);
         } else {
            push \@in_arg_strs,  Call::Haskell::ReadShow::showH(\$arg,\$hs_type);
         }

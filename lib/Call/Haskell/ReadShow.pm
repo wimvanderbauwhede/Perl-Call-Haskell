@@ -81,7 +81,7 @@ sub show_algtype {
         show_maybe($data, $hs_type->{'TypeArgs'}->[0] );
     } else {
         # This is an unknown datatype. Give up
-         die "Type ".  $hs_type->{'TypeName'}. " not supported, please create a Perl counterpart using the Types module\n";
+         die "Type ".  $hs_type->{'TypeName'}. " not supported, please create a Perl counterpart using the Functional::Types module\n";
     }
 }
 
