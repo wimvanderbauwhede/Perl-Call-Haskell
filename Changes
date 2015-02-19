@@ -1,6 +1,8 @@
 Revision history for Call-Haskell
 
 {{$NEXT}}
+
+v0.1.1  2015-02-19 10:06:24 GMT
         - Changed name of types module from Types to Functional::Types
 
 v0.1.0  2015-02-18 09:17:57 GMT
