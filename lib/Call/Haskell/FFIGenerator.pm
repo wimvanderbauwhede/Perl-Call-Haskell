@@ -6,7 +6,7 @@ use Data::Dumper;
 use Cwd;
 use Digest::MD5;
 
-use version; our $VERSION = version->declare('v0.1.1');
+use version; our $VERSION = version->declare('v0.2.0');
 
 use Exporter 'import';
 
@@ -165,20 +165,20 @@ sub $fn {
 ENDWH
         
        } else {
-my $use_perl_types = $perl_types == 1 ? '' : "use $perl_types;";
+my $use_perl_types = "$perl_types" eq '1' ? '' : "use $perl_types;";
     
        $code .= <<"ENDWTP";
 use Call::Haskell::ReadShow qw( showH readH );       
-use Functional::Types;
+use Types;
 $use_perl_types
 require Call::Haskell; 
 sub $fn {
     my \$hs_type=$hs_type_str;
-    my \$in_str = '';
+#    my \$in_str = '';
     my \@in_arg_strs=();
     for my \$arg (\@_) {
-        if (ref(\$arg) eq 'Functional::Types') {    
-            push \@in_arg_strs, Functional::Types::show(\$arg);
+        if (ref(\$arg) eq 'Types') {    
+            push \@in_arg_strs, Types::show(\$arg);
         } else {
            push \@in_arg_strs,  Call::Haskell::ReadShow::showH(\$arg,\$hs_type);
         }

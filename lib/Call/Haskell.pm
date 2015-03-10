@@ -8,7 +8,7 @@ use Cwd;
 use Config;
 require Inline;
 
-use version; our $VERSION = version->declare('v0.1.1');
+use version; our $VERSION = version->declare('v0.2.0');
 @Call::Haskell::ISA = qw(Exporter);
 my $VV = 0;
 
@@ -22,8 +22,10 @@ sub import {
   'clean'     => 0,
   'verbose'   => 0,
   'perl_types' => '', 
-  'packages' => [], 
+  'packages' => []
  );
+ #TODO: instead of 'packages', we should scan the source code for import statements and then use
+ # ghc-pkg find-module $module to find the package
  if ( scalar @import_list == 1 ) {
   $config{'functions'} = $import_list[0];
  }
@@ -56,7 +58,7 @@ sub import {
  #        push @{$funcs{$module}},$func;
  #        }
  #    }
- build( $module, \@mfuncs, $config{'path'}, $config{'clean'},
+ build( $module, \@mfuncs, $config{'path'}, $config{'packages'}, $config{'clean'},
   $config{'verbose'} , $config{'perl_types'} );
   my $wd = cwd();
 #  say "Before EXPORT code";
@@ -75,11 +77,13 @@ sub import {
 }
 
 sub build {
- ( my $hs_module, my $function_names, my $hs_module_dir, my $CLEAN, $VV, my $perl_types ) =
+ ( my $hs_module, my $function_names, my $hs_module_dir, my $extra_packages, my $CLEAN, $VV, my $perl_types ) =
    @_;                     #'ProcessString';
  my $wd = cwd();
  if ($CLEAN) {
     system('rm -Rf _Call_Haskell _Inline');
+        system('rm *.o *.hi');
+
  }
  ( my $inline_c_code, my $generated ) =
    create_hs_ffi_generator( $hs_module, $function_names, $hs_module_dir, $CLEAN,
@@ -118,30 +122,53 @@ sub build {
  my $c_wrapper          = $hs_module . 'CWrapper';
  my $hs_lib             = $hs_module . 'HsC';
  my $link_options_cache = '.lddlflags.cache';
+ my $obj_file_names_cache ='.objs.cache';
 
 # # Clean up
  if ($CLEAN) {
-  system("rm *.o *.hi lib$hs_lib.a $test_src.c $test_out $link_options_cache");
-  system("rm -Rf ./tmp/*");
+  system("rm *.o *.hi lib$hs_lib.a $test_src.c $test_out $link_options_cache $obj_file_names_cache 2>/dev/null ");
+  system("rm -Rf ./tmp/* 2>/dev/null");
  }
 
  #  Now, first compile the Haskell file:
- if ( not -e "$hs_ffi_module.o" ) {
-  say "ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module";
-  system("ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module");
+  my $object_files="";
+  my @packages=();
+if (not -e  "$obj_file_names_cache") {
+# if ( not -e "$hs_ffi_module.o" ) {
+  say "ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module" if $VV;
+  my @ghc_lines=`ghc -c -O --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir $hs_ffi_module`;
+  @packages=find_packages(@ghc_lines);
+  for my $line (@ghc_lines) {
+      chomp $line;
+      $line=~s/^.*,\s//; 
+          $line=~s/\s\)\s*$/ /;
+      $object_files.=$line;
+  }
+#  say "<<$object_files>>";
+
+  # Here we should write these to a file cache
+  open my $OBJS, '>', $obj_file_names_cache;
+  print $OBJS $object_files;
+  close $OBJS;
+ }
+ else {
+  say "USING CACHED OBJECT NAMES" if $VV;
+  open my $OBJS, '<', $obj_file_names_cache;
+  $object_files = <$OBJS>;
+  close $OBJS;      
+# cache the list of object files
  }
  if ( not -e "$c_wrapper.o" ) {
-  say "ghc --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir -optc-O -no-hs-main -c $c_wrapper.c $hs_ffi_module $hs_module FFIGenerator.ShowToPerl";
+  say "ghc --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir -optc-O -no-hs-main -c $c_wrapper.c $hs_ffi_module $hs_module FFIGenerator.ShowToPerl" if $VV; 
   system(
 "ghc --make -i$wd/$hs_module_dir -i$hs_FFIGenerator_dir -optc-O -no-hs-main -c $c_wrapper.c $hs_ffi_module $hs_module FFIGenerator.ShowToPerl"
   );
  }
  if ( not -e "lib$hs_lib.a" ) {
-  say
-"ar rcs lib$hs_lib.a  $c_wrapper.o $hs_ffi_module.o $wd/$hs_module_dir/$hs_module.o $hs_FFIGenerator_dir/FFIGenerator/ShowToPerl.o";
-  system(
-"ar rcs lib$hs_lib.a  $c_wrapper.o $hs_ffi_module.o $wd/$hs_module_dir/$hs_module.o $hs_FFIGenerator_dir/FFIGenerator/ShowToPerl.o"
-  );
+  say "ar rcs lib$hs_lib.a  $c_wrapper.o $object_files" if $VV;
+#  say "OLD: ar rcs lib$hs_lib.a  $c_wrapper.o $hs_ffi_module.o $wd/$hs_module_dir/$hs_module.o $hs_FFIGenerator_dir/FFIGenerator/ShowToPerl.o";
+#  system( "ar rcs lib$hs_lib.a  $c_wrapper.o $hs_ffi_module.o $wd/$hs_module_dir/$hs_module.o $hs_FFIGenerator_dir/FFIGenerator/ShowToPerl.o");
+  system( "ar rcs lib$hs_lib.a  $c_wrapper.o $object_files");
  }
  if ( $CLEAN or not -e "$test_src.c" ) {
   my $test_src_code = "#include \"${c_wrapper}.h\"
@@ -160,12 +187,13 @@ sub build {
  my $ld           = '';
 
  # if there is no cached link options file
+ my $package_str = join(' ', map {"-package $_"} (@packages,@{$extra_packages}));
  if ( not -e $link_options_cache ) {
   print
-"ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers -o $test_out 2>&1\n"
+"ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers $package_str -o $test_out 2>&1\n"
     if $VV;
   my @ghc_link_output =
-`ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers -o $test_out 2>&1`;
+`ghc -v -keep-tmp-files -tmpdir=./tmp  -no-hs-main $test_src.o -L. -l$hs_lib -package parsec -package containers $package_str -o $test_out 2>&1`;
   my $ghc_link_options_str = $ghc_link_output[-1];
   $ghc_link_options_str =~ s/^\s*\'//;
   $ghc_link_options_str =~ s/\'\s*$//;
@@ -221,6 +249,51 @@ sub build {
 # say "LEAVING build()" if $VV;
 }
 
+sub find_packages { my @ghc_make_output = @_;
+     #TODO: instead of 'packages', we should scan the source code for import statements and then use
+ # ghc-pkg find-module $module to find the package
+    my @sources=();
+    for my $line (@ghc_make_output) {
+#        say "LINE: $line";
+      chomp $line;
+      $line=~s/,.+$//; 
+      $line=~s/^.+\(\s//;
+#      say "LINE-PROC: $line";
+      push @sources,$line;
+    }
+    my %packages=();
+    for my $src (@sources) {
+#        say "grep -E '^\\s*import\\s+[A-Z]' $src";
+        my @module_lines=`grep -E '^\\s*import\\s+[A-Z]' $src`;
+        for my $line (@module_lines) {
+#            say "MODLINE: $line";
+            my $module = $line;
+            $module=~s/^\s*import\s//;
+            $module=~s/qualified\s//;
+            $module=~s/hiding\s.*$//;
+            $module=~s/as\s.*$//;
+            $module=~s/\s*\(.*$//;
+#            say "MOD: $module";
+            my @pkg_lines=`ghc-pkg find-module $module`;
+            for my $line (@pkg_lines ) {
+                next if $line=~/^\s*$/;
+                next if $line=~/:/;
+                next if $line=~/\(/;
+                $line=~s/^\s+//;
+                $line=~s/\-.+\s*$//;
+#                say "PKG: <$line>";
+                if ($line ne 'base' and $line ne 'mtl') {
+                $packages{$line}=1;
+                last;
+                }
+            }
+        }    
+    }
+    delete $packages{'containers'};
+    delete $packages{'parsec'};
+    return (keys %packages);
+}
+
 END {
  say "CALL hs_end" if $VV;
  hs_end(0);
@@ -243,6 +316,8 @@ or more explicitly:
     use Call::Haskell functions => 'My::Haskell::Module( f1, f2, f3, f4 )' , path => '..', clean => 0, verbose => 0 ;
     
     my $res = f1(@args);
+
+Note that the path to C<Call/Haskell.pm> must be I<absolute> in C<@INC>. The easiest way is to add the absolute path to the C<PERL5LIB> environment variable.  
 
 
 

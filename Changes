@@ -1,6 +1,8 @@
 Revision history for Call-Haskell
 
 {{$NEXT}}
+        - Builder now correctly detects objects to be put in the FFI library
+        - Builder now automatically detects Haskell packages for linking
 
 v0.1.1  2015-02-19 10:06:24 GMT
         - Changed name of types module from Types to Functional::Types
