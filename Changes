@@ -1,6 +1,8 @@
 Revision history for Call-Haskell
 
 {{$NEXT}}
+
+v0.2.0  2015-03-10 15:52:21 GMT
         - Builder now correctly detects objects to be put in the FFI library
         - Builder now automatically detects Haskell packages for linking
 
