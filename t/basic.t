@@ -4,7 +4,7 @@ use Test::More;
 system('rm -f *.o *.hi');
 system('rm -Rf _Call_Haskell/ _Inline/');
 
-plan skip_all => "Skipping all test, please uncomment the 'use Call:Haskell' and the test plan and run manually";
+plan skip_all => "Skipping all test, please uncomment the 'use Call:Haskell' and the test plan and run manually: cd t; perl -I../lib basic.t";
 #plan tests => 4;
 #use Call::Haskell import => 'ProcessStr( f1, f2, f3, f4 )', path => '.';
 

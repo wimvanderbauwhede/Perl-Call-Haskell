@@ -144,12 +144,12 @@ use Exporter qw( import );
 \@CallHaskellWrappers::${fn}::EXPORT = qw( $fn );
 
 ENDWC
-       my $hs_argtup_type = (scalar @{$arg_types} > 1) ?  '('.join(',',@{$arg_types}).')' : $arg_types->[0];
-       
-            $Data::Dumper::Indent=0;  
-           $Data::Dumper::Terse=1;
+    my $hs_argtup_type = (scalar @{$arg_types} > 1) ?  '('.join(',',@{$arg_types}).')' : $arg_types->[0];
+
+    local $Data::Dumper::Indent=0;  
+    local $Data::Dumper::Terse=1;
         
-        my $hs_type_str=Dumper($hs_argtup_type);
+    my $hs_type_str=Dumper($hs_argtup_type);
     if ($perl_types eq '') {             
         $code .= <<"ENDWH";
 use Call::Haskell::ReadShow qw( showH readH );

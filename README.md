@@ -37,6 +37,19 @@ Currently, you can only use functions from a single Haskell module.
 
 The module creates two subdirectories in your working directory: `_Call_Haskell` and `_Inline`. You can find all generated code in there.
 
+# TESTING
+
+The Haskell build process does currently not work with automated testing so the test in `t/basic.t` is a stub. You can test manually by commenting out the current plan, and uncommenting the lines below it:
+
+    #plan skip_all => "Skipping all test, please uncomment the 'use Call:Haskell' and the test plan and run manually";
+    plan tests => 4;
+    use Call::Haskell import => 'ProcessStr( f1, f2, f3, f4 )', path => '.';
+
+Then you can test it as follows:
+
+    $ cd t
+    $ perl -I../lib basic.t
+
 # AUTHOR
 
 Wim Vanderbauwhede <Wim.Vanderbauwhede@mail.be>
