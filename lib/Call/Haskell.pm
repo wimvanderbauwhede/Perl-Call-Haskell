@@ -8,7 +8,7 @@ use Cwd;
 use Config;
 require Inline;
 
-use version; our $VERSION = version->declare('v0.2.0');
+use version; our $VERSION = version->declare('v0.2.1');
 @Call::Haskell::ISA = qw(Exporter);
 my $VV = 0;
 
